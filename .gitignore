@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -46,3 +47,6 @@ node_modules
 .vercel
 .next
 *.log
+=======
+.vercel
+>>>>>>> c4116fb89e730bdca68ffc24d11f26a67ba336f2
