@@ -1,103 +1,170 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { CardTitle, CardHeader, CardContent, Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Loader2, Search } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { formatCurrency } from '@/lib/utils';
+
+// Update API URL to point to local server
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+interface Property {
+  id: string;
+  address: string;
+  price: number;
+  bedrooms: number;
+  bathrooms: number;
+  square_feet: number;
+  property_type: string;
+  status: string;
+  image_url?: string;
+  sell_probability_score: number;
+}
+
+export default function PropertyListPage() {
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const fetchProperties = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/api/properties`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch properties');
+      }
+
+      const data = await response.json();
+      setProperties(data.data || []);
+      setError(null);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch properties');
+      setProperties([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProperties();
+  }, []);
+
+  const filteredProperties = properties.filter(property =>
+    property.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    property.property_type.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="flex flex-col min-h-screen">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center">
+          <div className="mr-4 hidden md:flex">
+            <h1 className="text-lg font-semibold">Off Market AI Properties</h1>
+          </div>
+          <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+            <div className="w-full flex-1 md:w-auto md:flex-none">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search properties..."
+                  className="pl-8 md:w-[300px]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            <ThemeToggle />
+          </div>
         </div>
+      </header>
+      <main className="flex-1 container py-6">
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-muted-foreground">
+            {filteredProperties.length} properties found
+          </p>
+          <Button onClick={fetchProperties} disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Refresh'
+            )}
+          </Button>
+        </div>
+        {error && (
+          <div className="mb-6 p-4 rounded-lg bg-destructive/10 text-destructive">
+            {error}
+          </div>
+        )}
+        {loading ? (
+          <div className="flex justify-center items-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : filteredProperties.length > 0 ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredProperties.map((property) => (
+              <Card key={property.id} className="overflow-hidden">
+                {property.image_url && (
+                  <div className="aspect-[4/3] relative">
+                    <img
+                      alt={property.address}
+                      className="object-cover w-full h-full"
+                      src={property.image_url}
+                    />
+                  </div>
+                )}
+                <CardHeader>
+                  <div className="flex justify-between items-start gap-4">
+                    <CardTitle className="line-clamp-2 text-base">
+                      {property.address}
+                    </CardTitle>
+                    <Badge variant={property.status === 'available' ? 'default' : 'secondary'}>
+                      {property.status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-2">
+                    <div className="text-2xl font-bold">
+                      {formatCurrency(property.price)}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">
+                      <div>
+                        <span className="font-medium">{property.bedrooms}</span> beds
+                      </div>
+                      <div>
+                        <span className="font-medium">{property.bathrooms}</span> baths
+                      </div>
+                      <div>
+                        <span className="font-medium">{property.square_feet.toLocaleString()}</span> sqft
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Badge variant="outline">{property.property_type}</Badge>
+                      <div className="ml-auto text-muted-foreground">
+                        Score: {(property.sell_probability_score * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground py-12">
+            No properties found.
+          </div>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
-}
+} 
