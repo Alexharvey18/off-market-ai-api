@@ -1,6 +1,5 @@
 {
   "version": 2,
-<<<<<<< HEAD
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
@@ -11,19 +10,4 @@
       "use": "@vercel/next"
     }
   ]
-=======
-  "builds": [
-    {
-      "src": "server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "server.js"
-    }
-  ],
-  "public": true
->>>>>>> c4116fb89e730bdca68ffc24d11f26a67ba336f2
 } 
